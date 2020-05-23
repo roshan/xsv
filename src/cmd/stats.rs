@@ -49,6 +49,8 @@ stats options:
                            This requires storing all CSV data in memory.
     --nulls                Include NULLs in the population size for computing
                            mean and standard deviation.
+    --fill                 Calculate number of records on which field is
+                           non-NULL
     -j, --jobs <arg>       The number of jobs to run in parallel.
                            This works better when the given CSV data has
                            an index already created. Note that a file handle
@@ -76,6 +78,7 @@ struct Args {
     flag_cardinality: bool,
     flag_median: bool,
     flag_nulls: bool,
+    flag_fill: bool,
     flag_jobs: usize,
     flag_output: Option<String>,
     flag_no_headers: bool,
@@ -211,6 +214,7 @@ impl Args {
             cardinality: self.flag_cardinality || self.flag_everything,
             median: self.flag_median || self.flag_everything,
             mode: self.flag_mode || self.flag_everything,
+            fill: self.flag_fill || self.flag_everything,
         })).take(record_len).collect()
     }
 
@@ -223,6 +227,7 @@ impl Args {
         if self.flag_median || all { fields.push("median"); }
         if self.flag_mode || all { fields.push("mode"); }
         if self.flag_cardinality || all { fields.push("cardinality"); }
+        if self.flag_fill || all { fields.push("fill"); }
         csv::StringRecord::from(fields)
     }
 }
@@ -236,6 +241,7 @@ struct WhichStats {
     cardinality: bool,
     median: bool,
     mode: bool,
+    fill: bool,
 }
 
 impl Commute for WhichStats {
@@ -252,6 +258,7 @@ struct Stats {
     online: Option<OnlineStats>,
     mode: Option<Unsorted<Vec<u8>>>,
     median: Option<Unsorted<f64>>,
+    fill: u64,
     which: WhichStats,
 }
 
@@ -271,6 +278,7 @@ impl Stats {
             online: online,
             mode: mode,
             median: median,
+            fill: 0,
             which: which,
         }
     }
@@ -283,6 +291,7 @@ impl Stats {
         self.sum.as_mut().map(|v| v.add(t, sample));
         self.minmax.as_mut().map(|v| v.add(t, sample));
         self.mode.as_mut().map(|v| v.add(sample.to_vec()));
+        if !sample.is_empty() { self.fill += 1 }
         match self.typ {
             TUnknown => {}
             TNull => {
@@ -365,6 +374,11 @@ impl Stats {
                 }
             }
         }
+
+        if self.which.fill {
+            pieces.push(self.fill.to_string())
+        }
+
         csv::StringRecord::from(pieces)
     }
 }

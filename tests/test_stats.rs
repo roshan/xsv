@@ -93,6 +93,7 @@ fn get_field_value(wrk: &Workdir, cmd: &mut process::Command, field: &str)
     if field == "median" { cmd.arg("--median"); }
     if field == "cardinality" { cmd.arg("--cardinality"); }
     if field == "mode" { cmd.arg("--mode"); }
+    if field == "fill" { cmd.arg("--fill"); }
 
     let mut rows: Vec<Vec<String>> = wrk.read_stdout(cmd);
     let headers = rows.remove(0);
@@ -180,6 +181,10 @@ stats_tests!(stats_median_even, "median", &["1", "2", "3", "4"], "2.5");
 stats_tests!(stats_median_even_null, "median",
              &["", "1", "2", "3", "4"], "2.5");
 stats_tests!(stats_median_mix, "median", &["1", "2.5", "3"], "2.5");
+
+stats_tests!(stats_fill, "fill", &["1", "a", "3.2"], "3");
+stats_tests!(stats_fill_some_null, "fill", &["1", "", "3.2"], "2");
+stats_tests!(stats_fill_all_null, "fill", &["", "", ""], "0");
 
 mod stats_infer_nothing {
     // Only test CSV data with headers.
