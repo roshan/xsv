@@ -26,7 +26,7 @@ pub fn version() -> String {
     );
     match (maj, min, pat) {
         (Some(maj), Some(min), Some(pat)) =>
-            format!("{}.{}.{}", maj, min, pat),
+            format!("{}.{}.{} (roshan)", maj, min, pat),
         _ => "".to_owned(),
     }
 }
